@@ -1,9 +1,11 @@
 <script setup>
+import { looseIndexOf } from "@vue/shared";
 import { ref, computed } from "vue";
 import USelectItem from "./global/USelectItem.vue";
 
 const books = ref([
   {
+    id: 1,
     name: "Портрет Дориана Грея",
     author: "Оскар Уаильд",
     img: "content/Dorian-Gray 1.jpg",
@@ -13,6 +15,7 @@ const books = ref([
   },
 
   {
+    id: 2,
     name: "Айвенго",
     author: "Вальтер Скотт",
     img: "content/Ayvengo 1.jpg",
@@ -22,6 +25,7 @@ const books = ref([
   },
 
   {
+    id: 3,
     name: "Мастер и Маргарита",
     author: "Булгаков М.А.",
     img: "content/Master-i-Margarita 1.jpg",
@@ -31,6 +35,7 @@ const books = ref([
   },
 
   {
+    id: 4,
     name: "Маленький принц",
     author: "Антуан де-Сент Экзюпери",
     img: "content/Little-Prince 1.jpg",
@@ -40,6 +45,7 @@ const books = ref([
   },
 
   {
+    id: 5,
     name: "Книжный вор",
     author: "Маркус Зусак",
     img: "content/Knizhniy-vor.jpg",
@@ -49,6 +55,7 @@ const books = ref([
   },
 
   {
+    id: 6,
     name: "Список Шиндлера",
     author: "Томас Кенилли",
     img: "content/Spisok-Shindlera 1.jpg",
@@ -58,6 +65,7 @@ const books = ref([
   },
 
   {
+    id: 7,
     name: "Человек, который смеется",
     author: "Виктор Гюго",
     img: "content/Chelovek-kotoriy-smeetsa.jpg",
@@ -73,49 +81,49 @@ const price = (book) => {
 
 const defaultValue = ref("")
 
-const searchBook = computed(() => {
-  return books.value.filter(
-    (book) => book.name.toLowerCase().startsWith(defaultValue.value) || book.author.toLowerCase().startsWith(defaultValue.value)
-  );
+const filteredList = computed(() => {
+  if (defaultValue.value) {
+    return books.value.filter(
+    (book) => book.name.toLowerCase().startsWith(defaultValue.value) || book.author.toLowerCase().startsWith(defaultValue.value))
+  };
+  return books.value
 })
 
 let arrBooks = ref(books.value);
 
 const changeArrForSearch = ref(function (arr) {
   arrBooks.value = arr;
-  defaultValue.value = "";
+  defaultValue.value = null;
 });
 
-const sortParam = ref("");
+const sortByName = (a, b) => (a.name.toLowerCase() > b.name.toLowerCase()) ? 1 : -1;
+const sortByAuthor = (a, b) => (a.author.toLowerCase() > b.author.toLowerCase()) ? 1 : -1;
+const sortByCost = (a, b) =>(a.cost > b.cost) ? 1 : -1;
+const sortById = (a, b) =>(a.id > b.id) ? 1 : -1;
 
-const sortByName = (d1, d2) => (d1.name.toLowerCase() > d2.name.toLowerCase()) ? 1 : -1;
-const sortByAuthor = (d1, d2) => (d1.author.toLowerCase() > d2.author.toLowerCase()) ? 1 : -1;
-const sortByCost = (d1, d2) =>(d1.cost > d2.cost) ? 1 : -1;
-
-const sortedList = computed(() => {
-    switch(sortParam.value) {
-        case '': return books.value;
-        case 'name': return [...books.value].sort(sortByName);
-        case 'name-reverse': return [...books.value].sort(sortByName).reverse();
-        case 'author': return [...books.value].sort(sortByAuthor);
-        case 'author-reverse': return [...books.value].sort(sortByAuthor).reverse();
-        case 'cost': return [...books.value].sort(sortByCost);
-        case 'cost-reverse': return [...books.value].sort(sortByCost).reverse();
-        default: return books.value;
-    }
-})
+const sortBy = ref(function(value) {
+  value === 'clear' ? arrBooks.value.sort(sortById) :
+  value === 'name' ? arrBooks.value.sort(sortByName) :
+  value === 'name-reverse' ? arrBooks.value.sort(sortByName).reverse() :
+  value === 'author' ? arrBooks.value.sort(sortByAuthor) :
+  value === 'author-reverse' ? arrBooks.value.sort(sortByAuthor).reverse() :
+  value === 'cost' ? arrBooks.value.sort(sortByCost) :
+  value === 'cost-reverse' ? arrBooks.value.sort(sortByCost).reverse() :
+  arrBooks.value
+});
 
 </script>
 
 <template>
   <form
   class="search line"
-  @submit.prevent.stop="changeArrForSearch(searchBook)"
+  @submit.prevent.stop="changeArrForSearch(filteredList)"
   >
   <div class="search-input">
     <UInput
     class="caption"
     v-model="defaultValue"
+    :value="defaultValue"
     type="search"
     placeholder="Введите название или имя автора"
      />
@@ -124,7 +132,7 @@ const sortedList = computed(() => {
    <USelect
    :class="{ visible: defaultValue }">
         <USelectItem
-        v-for="item in searchBook"
+        v-for="item in filteredList"
         @click="changeArrForSearch([item])"
         :a="item.name"/>
     </USelect>
@@ -133,32 +141,20 @@ const sortedList = computed(() => {
   <ul class="select">
             <button>Сортировка</button>
             <ul class="select-content">
-              <li @click.prevent.stop="sortParam=''"><a>Сбросить</a></li>
-              <li @click.prevent.stop="sortParam='name'"><a>Название А-Я</a></li>
-              <li @click.prevent.stop="sortParam='name-reverse'"><a>Название Я-А</a></li>
-              <li @click.prevent.stop="sortParam='author'"><a>Автор А-Я</a></li>
-              <li @click.prevent.stop="sortParam='author-reverse'"><a>Автор Я-А</a></li>
-              <li @click.prevent.stop="sortParam='cost'"><a>Цена по возрастанию</a></li>
-              <li @click.prevent.stop="sortParam='cost-reverse'"><a>Цена по убыванию</a></li>
+              <li @click.prevent.stop="sortBy('clear')"><a>Сбросить</a></li>
+              <li @click.prevent.stop="sortBy('name')"><a>Название А-Я</a></li>
+              <li @click.prevent.stop="sortBy('name-reverse')"><a>Название Я-А</a></li>
+              <li @click.prevent.stop="sortBy('author')"><a>Автор А-Я</a></li>
+              <li @click.prevent.stop="sortBy('author-reverse')"><a>Автор Я-А</a></li>
+              <li @click.prevent.stop="sortBy('cost')"><a>Цена по возрастанию</a></li>
+              <li @click.prevent.stop="sortBy('cost-reverse')"><a>Цена по убыванию</a></li>
             </ul>
           </ul>
 </form>
 
-
-
-<!--    <div class="collaps-search">
-      <ul
-      class="collaps-search-items"
-      :class="{ visible: defaultValue }"
-      >
-        <li v-for="item in searchBook"><a @click="arrForSearch([item])">{{ item.name }}</a></li>
-      </ul>
-    </div> -->
-
-
   <div class="cards" :class="{ small: arrBooks.length < 4 }">
     <UGoods
-    v-for="book in sortedList"
+    v-for="book in arrBooks"
     :key="book.name"
     :src="book.img"
     :alt="book.name"
